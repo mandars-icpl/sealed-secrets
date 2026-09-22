@@ -526,7 +526,7 @@ git commit -m "feat: add file keybackup provider"
 - Consumes: `keybackup.Register`, `keybackup.Backup`, `keybackup.SafeID`
 - Produces: scheme `awssm`, URL `awssm://<prefix>[/<more>]?region=<r>&kms-key-id=<k>`. Exported `NewWithClient(api, prefix, kmsKeyID string) *Store` for tests. Unexported `api` interface with `CreateSecret`, `PutSecretValue`, `DescribeSecret`, `TagResource`.
 
-- [ ] **Step 1: Add the SDK modules**
+- [x] **Step 1: Add the SDK modules**
 
 Run:
 ```bash
@@ -536,7 +536,7 @@ go build ./...
 ```
 Expected: `go.mod` now lists `github.com/aws/aws-sdk-go-v2`, `.../config`, `.../service/secretsmanager` (plus indirect modules). Build succeeds.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```go
 // pkg/keybackup/awssm/awssm_test.go
@@ -727,12 +727,12 @@ func TestOpenRegistersScheme(t *testing.T) {
 }
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `go test ./pkg/keybackup/awssm/ 2>&1 | head -5`
 Expected: build failure, `undefined: NewWithClient`.
 
-- [ ] **Step 4: Write the implementation**
+- [x] **Step 4: Write the implementation**
 
 ```go
 // pkg/keybackup/awssm/awssm.go
@@ -895,12 +895,12 @@ func (s *Store) Exists(ctx context.Context, fingerprint string) (bool, error) {
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `go test ./pkg/keybackup/... -v 2>&1 | grep -E "^(--- |ok|FAIL)"`
 Expected: all PASS, three `ok` package lines.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add go.mod go.sum pkg/keybackup/awssm/
