@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/url"
 	"os"
 	"os/signal"
 	"sort"
@@ -29,6 +30,7 @@ import (
 	"github.com/bitnami/sealed-secrets/pkg/client/clientset/versioned"
 	sealedsecrets "github.com/bitnami/sealed-secrets/pkg/client/clientset/versioned"
 	ssinformers "github.com/bitnami/sealed-secrets/pkg/client/informers/externalversions"
+	"github.com/bitnami/sealed-secrets/pkg/keybackup"
 )
 
 // Cap concurrent namespace Gets and informer setup so a large
@@ -69,6 +71,7 @@ type Flags struct {
 	WatchForSecrets         bool
 	KubeClientQPS           float32
 	KubeClientBurst         int
+	KeyBackupURL            string
 }
 
 func initKeyPrefix(keyPrefix string) (string, error) {
@@ -216,9 +219,23 @@ func Main(f *Flags, version string) error {
 		return err
 	}
 
+	var backupStore keybackup.Store
+	if f.KeyBackupURL != "" {
+		backupStore, err = keybackup.Open(ctx, f.KeyBackupURL)
+		if err != nil {
+			return fmt.Errorf("key backup: %w", err)
+		}
+		registerKeyBackupMetrics()
+		slog.Info("Sealing key backup enabled", "url", redactURL(f.KeyBackupURL))
+	}
+
 	keyRegistry, err := initKeyRegistry(ctx, clientset, rand.Reader, myNs, prefix, SealedSecretsKeyLabel, f.KeySize, f.KeyOrderPriority)
 	if err != nil {
 		return err
+	}
+	if backupStore != nil {
+		keyRegistry.SetBackupStore(backupStore)
+		keyRegistry.reconcileKeyBackups(ctx)
 	}
 
 	var ct time.Time
@@ -396,4 +413,19 @@ func initSecretInformerFactory(clientset kubernetes.Interface, ns string, tweako
 		return nil
 	}
 	return informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithNamespace(ns), informers.WithTweakListOptions(tweakopts))
+}
+
+// redactURL strips query values from a backup URL before logging, so a future
+// provider that accepts credentials in the query never leaks them.
+func redactURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "<unparseable>"
+	}
+	q := u.Query()
+	for k := range q {
+		q.Set(k, "…")
+	}
+	u.RawQuery = q.Encode()
+	return u.String()
 }

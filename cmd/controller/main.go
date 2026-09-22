@@ -17,6 +17,9 @@ import (
 
 	ssv1alpha1 "github.com/bitnami/sealed-secrets/pkg/apis/sealedsecrets/v1alpha1"
 	"github.com/bitnami/sealed-secrets/pkg/buildinfo"
+
+	_ "github.com/bitnami/sealed-secrets/pkg/keybackup/awssm"
+	_ "github.com/bitnami/sealed-secrets/pkg/keybackup/file"
 )
 
 const (
@@ -53,6 +56,7 @@ func bindControllerFlags(f *controller.Flags, fs *flag.FlagSet) {
 
 	fs.BoolVar(&f.UpdateStatus, "update-status", true, "if true, the controller will update the status sub-resource whenever it processes a sealed secret (stable; enabled by default since v0.17.0)")
 	fs.BoolVar(&f.WatchForSecrets, "watch-for-secrets", false, "beta: If this is true, the controller will watch for key secrets. This is useful if you create the key secrets externally.")
+	fs.StringVar(&f.KeyBackupURL, "key-backup-url", "", "URL of an external store that receives a copy of every sealing key before it is created (for example awssm://prefix?region=ap-south-1&kms-key-id=alias/x, or file:///dir). Empty disables backup.")
 
 	fs.BoolVar(&f.SkipRecreate, "skip-recreate", false, "if true the controller will skip listening for managed secret changes to recreate them. This helps on limited permission environments.")
 

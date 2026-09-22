@@ -1867,7 +1867,7 @@ git commit -m "feat: reconcile existing sealing keys into the backup store"
 - Consumes: `keybackup.Open`, `KeyRegistry.SetBackupStore`, `reconcileKeyBackups`, `registerKeyBackupMetrics`
 - Produces: `Flags.KeyBackupURL string`, flag `--key-backup-url`, env `SEALED_SECRETS_KEY_BACKUP_URL`
 
-- [ ] **Step 1: Write the failing test** (append to `cmd/controller/main_test.go`; keep the existing imports and add `"github.com/bitnami/sealed-secrets/pkg/controller"` and `flag "github.com/spf13/pflag"` if not present)
+- [x] **Step 1: Write the failing test** (append to `cmd/controller/main_test.go`; keep the existing imports and add `"github.com/bitnami/sealed-secrets/pkg/controller"` and `flag "github.com/spf13/pflag"` if not present)
 
 ```go
 func TestKeyBackupURLFlagAndEnv(t *testing.T) {
@@ -1897,12 +1897,12 @@ func TestKeyBackupURLFlagAndEnv(t *testing.T) {
 
 Add `goflag "flag"` to the test imports.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `go test ./cmd/controller/ -run TestKeyBackupURLFlagAndEnv 2>&1 | head -5`
 Expected: build failure, `f.KeyBackupURL undefined`.
 
-- [ ] **Step 3: Add the field and flag**
+- [x] **Step 3: Add the field and flag**
 
 In `pkg/controller/main.go`, add to `Flags` after `KubeClientBurst int`:
 
@@ -1923,7 +1923,7 @@ In `cmd/controller/main.go` imports, add the providers for their registration si
 	_ "github.com/bitnami/sealed-secrets/pkg/keybackup/file"
 ```
 
-- [ ] **Step 4: Open the store in `Main`**
+- [x] **Step 4: Open the store in `Main`**
 
 In `pkg/controller/main.go`, `Main`, replace the block from `keyRegistry, err := initKeyRegistry(...)` through its `if err != nil { return err }` with:
 
@@ -1969,12 +1969,12 @@ func redactURL(raw string) string {
 
 Order matters: `Open` happens before `initKeyRegistry` so a bad URL fails before any key work; `SetBackupStore` happens before `initKeyRenewal` (which may generate the first key) so that first key is backed up.
 
-- [ ] **Step 5: Build and test everything**
+- [x] **Step 5: Build and test everything**
 
 Run: `go build ./... && go test ./cmd/controller/ ./pkg/controller/ ./pkg/keybackup/... 2>&1 | tail -6`
 Expected: all `ok`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add cmd/controller/main.go cmd/controller/main_test.go pkg/controller/main.go
