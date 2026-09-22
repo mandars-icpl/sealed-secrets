@@ -88,6 +88,13 @@ keyttl: ""
 ## keycutofftime: "Mon, 14 Oct 2024 21:45:30 +0200"
 ##
 keycutofftime: ""
+
+## @param keyBackup.url URL of an external store that receives a copy of every sealing key before it is created. Empty disables backup.
+## e.g. awssm://sealed-secrets/prod?region=ap-south-1&kms-key-id=alias/sealed-secrets
+## Cloud credentials bind through serviceAccount.annotations (IRSA on EKS). See docs/key-backup.md.
+##
+keyBackup:
+  url: ""
 ## @param rateLimit Number of allowed sustained request per second for verify endpoint
 ##
 rateLimit: ""

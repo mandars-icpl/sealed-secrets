@@ -1990,7 +1990,7 @@ git commit -m "feat: add --key-backup-url flag and wire the backup store"
 - Modify: `helm/sealed-secrets/templates/deployment.yaml:95` (after the `keycutofftime` block)
 - Modify: `helm/sealed-secrets/README.md:101` (after the `keycutofftime` row)
 
-- [ ] **Step 1: Add the value**
+- [x] **Step 1: Add the value**
 
 In `values.yaml`, directly after the `keycutofftime: ""` line:
 
@@ -2003,7 +2003,7 @@ keyBackup:
   url: ""
 ```
 
-- [ ] **Step 2: Render the flag**
+- [x] **Step 2: Render the flag**
 
 In `templates/deployment.yaml`, directly after the `{{- end }}` that closes the `keycutofftime` block:
 
@@ -2014,7 +2014,7 @@ In `templates/deployment.yaml`, directly after the `{{- end }}` that closes the 
             {{- end }}
 ```
 
-- [ ] **Step 3: Document the parameter**
+- [x] **Step 3: Document the parameter**
 
 In `helm/sealed-secrets/README.md`, add a row after `keycutofftime` in the same table, aligned with the existing columns:
 
@@ -2022,7 +2022,7 @@ In `helm/sealed-secrets/README.md`, add a row after `keycutofftime` in the same 
 | `keyBackup.url`                                   | URL of an external store that receives a copy of every sealing key before it is created. Empty disables backup.   | `""`                                |
 ```
 
-- [ ] **Step 4: Verify rendering**
+- [x] **Step 4: Verify rendering**
 
 Run:
 ```bash
@@ -2031,7 +2031,7 @@ helm template t helm/sealed-secrets --set keyBackup.url='awssm://p?region=r' | g
 ```
 Expected: first command prints `0`; second prints the flag line followed by `- "awssm://p?region=r"`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add helm/sealed-secrets/values.yaml helm/sealed-secrets/templates/deployment.yaml helm/sealed-secrets/README.md

@@ -99,6 +99,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | `keyrenewperiod`                                  | Specifies key renewal period. Default 30 days                                                                      | `""`                                |
 | `keyttl`                                          | Specifies the certificate validity duration. Default 10 years.                                                     | `""`                                |
 | `keycutofftime`                                   | Specifies a date at which the controller should generate a new certificate. Useful in early key renewal scenarios. | `""`                                |
+| `keyBackup.url`                                   | URL of an external store that receives a copy of every sealing key before it is created. Empty disables backup.   | `""`                                |
 | `rateLimit`                                       | Number of allowed sustained request per second for verify endpoint                                                 | `""`                                |
 | `rateLimitBurst`                                  | Number of requests allowed to exceed the rate limit per second for verify endpoint                                 | `""`                                |
 | `additionalNamespaces`                            | List of namespaces used to manage the Sealed Secrets                                                               | `[]`                                |

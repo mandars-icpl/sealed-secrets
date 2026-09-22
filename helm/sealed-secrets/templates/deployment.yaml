@@ -93,6 +93,10 @@ spec:
             - --key-cutoff-time
             - {{ .Values.keycutofftime | quote }}
             {{- end }}
+            {{- if .Values.keyBackup.url }}
+            - --key-backup-url
+            - {{ .Values.keyBackup.url | quote }}
+            {{- end }}
             {{- if .Values.rateLimit }}
             - --rate-limit
             - {{ .Values.rateLimit | quote }}
