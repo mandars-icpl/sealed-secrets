@@ -534,7 +534,9 @@ go get github.com/aws/aws-sdk-go-v2/config@latest github.com/aws/aws-sdk-go-v2/s
 go mod tidy
 go build ./...
 ```
-Expected: `go.mod` now lists `github.com/aws/aws-sdk-go-v2`, `.../config`, `.../service/secretsmanager` (plus indirect modules). Build succeeds.
+Expected: build succeeds. Note that `go mod tidy` removes the three modules again at this point,
+because no file imports them until step 4; that is normal. They come back as direct requirements in
+`go.mod` when `go mod tidy` is re-run after the implementation exists, which step 4 does.
 
 - [x] **Step 2: Write the failing tests**
 
@@ -730,7 +732,9 @@ func TestOpenRegistersScheme(t *testing.T) {
 - [x] **Step 3: Run tests to verify they fail**
 
 Run: `go test ./pkg/keybackup/awssm/ 2>&1 | head -5`
-Expected: build failure, `undefined: NewWithClient`.
+Expected: build failure. The message is `no required module provides package
+github.com/aws/aws-sdk-go-v2/aws`, not `undefined: NewWithClient`, because step 1's `go mod tidy`
+dropped the still-unimported SDK modules. Either way the test does not compile, which is the point.
 
 - [x] **Step 4: Write the implementation**
 
@@ -894,6 +898,10 @@ func (s *Store) Exists(ctx context.Context, fingerprint string) (bool, error) {
 	}
 }
 ```
+
+Then run `go mod tidy` again. Now that the code imports them, it restores
+`github.com/aws/aws-sdk-go-v2`, `.../config` and `.../service/secretsmanager` as direct
+requirements in `go.mod`, which is the state step 1 described.
 
 - [x] **Step 5: Run tests to verify they pass**
 
