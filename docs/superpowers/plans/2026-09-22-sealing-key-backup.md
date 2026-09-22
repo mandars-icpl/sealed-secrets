@@ -1137,7 +1137,7 @@ git commit -m "feat: extract key secret builder and manifest serializer"
   func (kr *KeyRegistry) markBacked(fingerprint string)
   ```
 
-- [ ] **Step 1: Write the metrics file**
+- [x] **Step 1: Write the metrics file**
 
 ```go
 // pkg/controller/keybackup_metrics.go
@@ -1191,7 +1191,7 @@ func observeKeyBackupSuccess() {
 }
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```go
 // pkg/controller/keyregistry_backup_test.go
@@ -1403,12 +1403,12 @@ func TestGenerateKeyGivesUpAfterMaxAttempts(t *testing.T) {
 }
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `go test ./pkg/controller/ -run 'TestGenerateKey' 2>&1 | head -5`
 Expected: build failure, `kr.SetBackupStore undefined`.
 
-- [ ] **Step 4: Implement in `keyregistry.go`**
+- [x] **Step 4: Implement in `keyregistry.go`**
 
 Add to the imports: `"errors"` is not needed; add `"github.com/bitnami/sealed-secrets/pkg/keybackup"`, `apierrors "k8s.io/apimachinery/pkg/api/errors"`, `krand "k8s.io/apimachinery/pkg/util/rand"`.
 
@@ -1540,12 +1540,12 @@ func (kr *KeyRegistry) writeKeyWithBackup(ctx context.Context, key *rsa.PrivateK
 
 Add `metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"` to imports.
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `go test ./pkg/controller/ 2>&1 | tail -3`
 Expected: `ok`. All five new tests and every pre-existing test pass.
 
-- [ ] **Step 6: Vet and commit**
+- [x] **Step 6: Vet and commit**
 
 Run: `go vet ./pkg/controller/ && gofmt -l pkg/controller/` (expect no output from gofmt).
 
