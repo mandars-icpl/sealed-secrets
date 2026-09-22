@@ -288,7 +288,7 @@ git commit -m "feat: add keybackup store interface and provider registry"
 - Consumes: `keybackup.Register`, `keybackup.Store`, `keybackup.Backup`, `keybackup.SafeID`
 - Produces: scheme `file`, URL `file:///abs/dir`; entries at `<dir>/<SafeID>.json`. Exported `New(dir string) (*Store, error)` for tests.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```go
 // pkg/keybackup/file/file_test.go
@@ -385,12 +385,12 @@ func TestBadFingerprint(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `go test ./pkg/keybackup/file/ 2>&1 | head -5`
 Expected: build failure, `undefined: New`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```go
 // pkg/keybackup/file/file.go
@@ -501,12 +501,12 @@ func (s *Store) Exists(_ context.Context, fingerprint string) (bool, error) {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `go test ./pkg/keybackup/... -v 2>&1 | grep -E "^(--- |ok|FAIL)"`
 Expected: every test PASS or SKIP (the read-only test skips under root); package lines `ok`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pkg/keybackup/file/
