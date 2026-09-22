@@ -208,8 +208,8 @@ if missing, with the same best-effort semantics as the reconcile pass.
 #### Manifest construction
 
 The manifest is the `v1.Secret` the controller would create, encoded as JSON with the
-standard Kubernetes serializer, with `resourceVersion`, `uid`, `creationTimestamp`,
-`managedFields` and `selfLink` cleared. For the reconcile and informer paths the live
+standard Kubernetes serializer, with `resourceVersion`, `uid`, `creationTimestamp` and
+`managedFields` cleared. For the reconcile and informer paths the live
 Secret is copied and the same fields cleared. Labels and annotations, including the
 `sealedsecrets.bitnami.com/sealed-secrets-key=active` label, are preserved so that
 `kubectl apply` of the manifest recreates a Secret the controller will adopt.

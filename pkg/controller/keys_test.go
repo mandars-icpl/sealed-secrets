@@ -171,7 +171,6 @@ func TestKeySecretManifestStripsServerFields(t *testing.T) {
 	s.GenerateName = ""
 	s.ResourceVersion = "123"
 	s.UID = "uid-1"
-	s.SelfLink = "/x"
 	s.CreationTimestamp = metav1.Now()
 	s.ManagedFields = []metav1.ManagedFieldsEntry{{Manager: "m"}}
 
@@ -190,7 +189,7 @@ func TestKeySecretManifestStripsServerFields(t *testing.T) {
 	if md["name"] != "prefixabcde" || md["namespace"] != "ns" {
 		t.Errorf("metadata = %v", md)
 	}
-	for _, f := range []string{"resourceVersion", "uid", "selfLink", "managedFields"} {
+	for _, f := range []string{"resourceVersion", "uid", "managedFields"} {
 		if _, present := md[f]; present {
 			t.Errorf("%s should be stripped", f)
 		}

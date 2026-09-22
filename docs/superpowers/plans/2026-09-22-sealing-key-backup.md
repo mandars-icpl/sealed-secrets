@@ -16,7 +16,7 @@
 - Fail closed for new keys: the Kubernetes Secret is created only after `Store.Put` returns nil.
 - Best effort for existing keys: reconcile and informer failures are logged and counted, never fatal.
 - Store entries are keyed by public key fingerprint (`crypto.PublicKeyFingerprint`, form `SHA256:<base64>`), sanitized to hex by `keybackup.SafeID`.
-- Stored payload is the Secret manifest as JSON with `resourceVersion`, `uid`, `creationTimestamp`, `managedFields`, `selfLink` cleared and `apiVersion: v1`, `kind: Secret` set.
+- Stored payload is the Secret manifest as JSON with `resourceVersion`, `uid`, `creationTimestamp`, `managedFields` cleared and `apiVersion: v1`, `kind: Secret` set.
 - Controller-chosen names are `prefix + rand.String(5)` using `k8s.io/apimachinery/pkg/util/rand`.
 - `Put` calls get a 30 second timeout from the controller.
 - No log line and no error message ever contains key material or manifest bytes.

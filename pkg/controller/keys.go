@@ -124,7 +124,6 @@ func keySecretManifest(s *v1.Secret) ([]byte, error) {
 	c.Kind = "Secret"
 	c.ResourceVersion = ""
 	c.UID = ""
-	c.SelfLink = ""
 	c.CreationTimestamp = metav1.Time{}
 	c.ManagedFields = nil
 	c.Generation = 0
