@@ -2283,7 +2283,7 @@ kubectl apply -f /tmp/kb-sealed.yaml && sleep 5 && kubectl get secret kb-test -o
 
 Expected: `registered private key` present, `New key written` absent, output `hello`. Record PASS/FAIL. Then `shred -u /tmp/kb-restore.json`.
 
-- [ ] **Step 3: Part B, AWS Secrets Manager**
+- [x] **Step 3: Part B, AWS Secrets Manager**
 
 Create a scoped KMS key and put AWS credentials into the pod via env (kind has no IRSA):
 
@@ -2319,7 +2319,7 @@ kubectl -n kube-system get secret -l sealedsecrets.bitnami.com/sealed-secrets-ke
 
 Expected: both counts equal 2. Then restore from AWS into a fresh cluster using the procedure in `docs/key-backup.md` and confirm `kb-test` decrypts to `hello`. Record PASS/FAIL.
 
-- [ ] **Step 4: Fail-closed check**
+- [x] **Step 4: Fail-closed check**
 
 Break the store and force a renewal:
 
@@ -2336,7 +2336,7 @@ curl -s localhost:8081/metrics | grep key_backup_; kill %1
 
 Expected: an error log line, key count unchanged, `key_backup_total{result="failure"}` at least 1, `key_backup_unbacked_keys 0`. The controller pod is still Running.
 
-- [ ] **Step 5: Clean up**
+- [x] **Step 5: Clean up**
 
 ```bash
 kind delete cluster --name ss-kb
@@ -2346,7 +2346,7 @@ aws kms schedule-key-deletion --key-id $KEY --pending-window-in-days 7
 rm -f /tmp/kb-cert.pem /tmp/kb-sealed.yaml
 ```
 
-- [ ] **Step 6: Record and commit the verification log**
+- [x] **Step 6: Record and commit the verification log**
 
 Append to this plan file:
 
@@ -2374,31 +2374,72 @@ Append to this plan file:
     only the backup JSON, installed the controller with backup disabled. It logged
     `registered private key secretname=sealed-secrets-keygzrh7`, did **not** log `New key written`,
     and the old SealedSecret decrypted to `hello` with `Synced=True`.
-- Part B (AWS): **NOT RUN — blocked on IAM.** Profile `ss-feas` / `ap-south-1` authenticates as
-  `arn:aws:iam::188318272732:user/mandars`, but `secretsmanager:DescribeSecret` is denied:
-  `User ... is not authorized to perform: secretsmanager:DescribeSecret ... because no
-  identity-based policy allows the secretsmanager:DescribeSecret action`. `Store.Exists` calls
-  DescribeSecret on every reconcile and informer add, so the awssm provider cannot be exercised.
-  `feasibility/iam-policy.json` grants CreateSecret, GetSecretValue, TagResource, DeleteSecret and
-  ListSecrets; the controller additionally needs `secretsmanager:DescribeSecret` **and**
-  `secretsmanager:PutSecretValue` on `arn:aws:secretsmanager:*:*:secret:ss-feas-*`. The task
-  prerequisites mention only PutSecretValue, so two actions must be added, not one.
-  PutSecretValue was not probed, because confirming one blocker was enough and probing it would
-  have created real Secrets Manager entries.
-- Fail-closed: **NOT RUN.** Step 4 drives the failure through an `awssm://` URL, so it is blocked
-  behind Part B. The equivalent path has unit coverage in
-  `TestGenerateKeyBackupFailureCreatesNothing` (no Secret created, failure counter incremented,
-  unbacked gauge stays 0).
+- Part B (AWS): **PASS**, after the IAM policy was extended. The policy originally granted
+  CreateSecret, GetSecretValue, TagResource, DeleteSecret and ListSecrets; the controller also
+  needs `secretsmanager:DescribeSecret` **and** `secretsmanager:PutSecretValue` on
+  `arn:aws:secretsmanager:*:*:secret:ss-feas-*`. The task prerequisites mention only
+  PutSecretValue, so two actions had to be added, not one. `feasibility/iam-policy.json` now
+  carries both.
+  - KMS key `35c35ce0-0da1-41ed-9d40-e5534c322480`, alias `alias/ss-feas-kb-0922`, URL
+    `awssm://ss-feas-kb-0922/keys?region=ap-south-1&kms-key-id=alias/ss-feas-kb-0922`.
+  - `redactURL` verified in a real log line: the URL printed as
+    `awssm://ss-feas-kb-0922/keys?kms-key-id=%E2%80%A6&region=%E2%80%A6`, both query values replaced.
+  - First entry named `ss-feas-kb-0922/keys/f3cba663…d93047`, which is exactly the hex of the key's
+    `SHA256:88umY5WT0oPfHgfPSoS+Jgb4C8w6AF/Wi7wEPuHZMEc` fingerprint. Tags
+    `sealed-secrets/secret-name=sealed-secrets-key8zjc8` and
+    `sealed-secrets/managed-by=sealed-secrets-controller` present, `KmsKeyId` the configured alias.
+  - Forced renewal via `keycutofftime`: Secrets Manager entry count and cluster key Secret count
+    both reached 2, tags `sealed-secrets-key8zjc8` and `sealed-secrets-keyq5swq`. The reconcile pass
+    over the pre-existing key produced no duplicate entry.
+  - Restore from AWS: fetched both entries with the `list-secrets` + `get-secret-value | base64 -d`
+    loop exactly as written in `docs/key-backup.md`, destroyed the cluster, created a fresh one,
+    applied only the fetched manifests, installed the controller with backup disabled. It logged
+    `registered private key` for both, did **not** log `New key written`, and the SealedSecret
+    sealed against the old key decrypted to `hello` with `Synced=True`.
+  - The first rollout crash-looped until credentials were injected, as step 3 anticipates. The
+    `kubectl set env` patch had to be re-applied after each `helm upgrade`.
+- Fail-closed: **PASS on the scheduled-renewal path, with one important caveat — see deviations.**
+  Pointed the controller at `kms-key-id=alias/does-not-exist` with `keyrenewperiod=30s`:
+  - `Sealing key backup failed; key not created` logged at ERROR with the underlying
+    `InvalidParameterException: The operation failed because of an invalid KMS key`, followed by
+    `Failed to generate new key`.
+  - Cluster key Secret count stayed at 2; no Secret was created for the failed key.
+  - Pod stayed `1/1 Running`.
+  - Metrics scraped through the API server pod proxy:
+    `key_backup_total{result="failure"} 2`, `key_backup_total{result="skipped"} 2`,
+    `key_backup_unbacked_keys 0`, `key_backup_last_success_timestamp_seconds 0`. The zero gauge is
+    correct: the failed key never existed, so it is not an unbacked live key.
 - Deviations from the plan:
+  - **Startup renewal is fatal when the store is unavailable (design gap, not yet fixed).** Step 4
+    expects the pod to stay Running. It does when the failing renewal is the *scheduled* one, because
+    `initKeyRenewal`'s `keyGenFunc` only logs the error. But when a key must be generated *at startup*
+    — first install, or `keycutofftime` in the past — `initKeyRenewal` returns the error, `Main`
+    propagates it and `cmd/controller/main.go:125` calls `panic(err)`, so the pod CrashLoopBackOffs.
+    Observed directly: forcing renewal at startup against the bad KMS alias produced
+    `panic: backup of new sealing key: awssm backup: create …` and 4 restarts.
+    This contradicts the spec's stated intent, "A store outage delays renewal; the existing key keeps
+    working" — on a restart during a store outage the controller does not come up at all, so existing
+    keys stop being served even though they are present and valid. The startup path was always fatal
+    on `generateKey` errors, but before this feature those errors were local crypto or API-server
+    failures; backup introduces an expected transient external dependency into that path. Deciding
+    whether a startup backup failure should be fatal, or should log and continue with the existing
+    keys, is a design change beyond this verification task and is left open.
   - The controller image is distroless, so the step 2 commands `kubectl exec $POD -- ls -la /backup`
     and `kubectl exec $POD -- cat /backup/*.json` both fail with
     `exec: "ls": executable file not found in $PATH`. The `emptyDir` was therefore replaced with a
     `hostPath` at `/tmp/kb-backup` on the kind node (pre-created and `chown 1001:1001`, because the
     container runs as UID 1001), and the directory was read with `docker exec ss-kb-control-plane`.
     Anyone re-running Part A should use the hostPath form.
-  - Cleanup: the kind cluster, the local image, the extracted key manifest (`shred -u`), the cert and
-    the sealed fixture were all removed. No AWS resources were created, so the AWS half of step 5
-    was not applicable.
+  - `kubectl port-forward` did not work from the automation shell, so step 4's metrics were scraped
+    with `kubectl get --raw "/api/v1/namespaces/kube-system/pods/<pod>:8081/proxy/metrics"` instead.
+  - Credentials were loaded into the cluster from a mode-0600 env file that is shredded immediately,
+    rather than passing `--from-literal` on the command line where the secret would appear in the
+    process list.
+  - Cleanup: kind cluster deleted, local image removed, both Secrets Manager entries deleted with
+    `--force-delete-without-recovery`, alias `alias/ss-feas-kb-0922` deleted, KMS key
+    `35c35ce0-0da1-41ed-9d40-e5534c322480` scheduled for deletion 2026-09-29 (7-day window, the
+    minimum AWS allows). All fetched key manifests, the cert and the sealed fixture were shredded or
+    removed. `list-secrets` under the prefix returns empty.
 ```
 
 ```bash
