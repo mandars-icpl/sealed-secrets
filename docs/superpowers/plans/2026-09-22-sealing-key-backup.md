@@ -71,7 +71,7 @@
   var ErrUnknownScheme error
   ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```go
 // pkg/keybackup/keybackup_test.go
@@ -151,12 +151,12 @@ func TestSafeID(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `go test ./pkg/keybackup/ 2>&1 | head -5`
 Expected: build failure, `undefined: Register` (package does not exist yet).
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```go
 // pkg/keybackup/keybackup.go
@@ -264,12 +264,12 @@ func SafeID(fingerprint string) (string, error) {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `go test ./pkg/keybackup/ -v 2>&1 | tail -8`
 Expected: all five tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pkg/keybackup/keybackup.go pkg/keybackup/keybackup_test.go
