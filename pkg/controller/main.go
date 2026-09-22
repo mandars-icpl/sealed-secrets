@@ -163,8 +163,15 @@ func initKeyRenewal(ctx context.Context, registry *KeyRegistry, period, validFor
 	// or if it's older than cutoff time.
 	mostRecentTime, err := registry.mostRecentKeyTime()
 	if err != nil || mostRecentTime.Before(cutoffTime) {
+		hasKeys := err == nil
 		if _, err := registry.generateKey(ctx, validFor, cn, privateKeyAnnotations, privateKeyLabels); err != nil {
-			return nil, err
+			if !hasKeys {
+				// Nothing to serve without a first key, so fail loudly.
+				return nil, err
+			}
+			// A cutoff-forced renewal failed (for example the backup store is down) but
+			// valid keys exist. Keep serving them and let the scheduled renewal retry.
+			slog.Error("Failed to generate new key at startup; continuing with existing keys", "error", err)
 		}
 	}
 
@@ -424,7 +431,7 @@ func redactURL(raw string) string {
 	}
 	q := u.Query()
 	for k := range q {
-		q.Set(k, "…")
+		q.Set(k, "redacted")
 	}
 	u.RawQuery = q.Encode()
 	return u.String()

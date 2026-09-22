@@ -220,6 +220,8 @@ Secret is copied and the same fields cleared. Labels and annotations, including 
 |---|---|
 | Startup: bad URL, unknown scheme, provider config error | Fatal. Controller exits non-zero with a clear log line. |
 | New key: `Put` fails or times out | Key discarded, no Secret created, error logged, failure counter incremented. Retry on next renewal. |
+| Startup: first key ever and `Put` fails | Fatal. There is nothing to serve; the pod restart is the retry. |
+| Startup: cutoff-forced key and `Put` fails, keys exist | Logged, startup continues serving the existing keys. Verified as a gap during implementation and fixed. |
 | Reconcile or informer: `Exists`/`Put` fails | Logged, counted, unbacked gauge raised, processing continues. No retry loop; a restart re-runs reconcile. |
 
 No log line contains key material. Manifest bytes are never logged at any level.

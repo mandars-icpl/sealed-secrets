@@ -204,3 +204,47 @@ func TestGenerateKeyGivesUpAfterMaxAttempts(t *testing.T) {
 		t.Error("registry must stay empty")
 	}
 }
+
+func TestInitKeyRenewalCutoffBackupFailureKeepsExistingKeys(t *testing.T) {
+	ctx := context.Background()
+	client := fake.NewClientset()
+	client.PrependReactor("create", "secrets", generateNameReactor)
+	kr := newTestRegistry(t, client, nil)
+	if _, err := kr.generateKey(ctx, time.Hour, "cn", "", ""); err != nil {
+		t.Fatal(err)
+	}
+	client.ClearActions()
+
+	store := newFakeStore()
+	store.putErr = errors.New("store down")
+	kr.SetBackupStore(store)
+
+	// A cutoff in the future forces a renewal at startup, which the failing store blocks.
+	trigger, err := initKeyRenewal(ctx, kr, 0, time.Hour, time.Now().Add(time.Minute), "cn", "", "")
+	if err != nil {
+		t.Fatalf("startup must not fail when keys already exist, got %v", err)
+	}
+	if trigger == nil {
+		t.Fatal("expected a trigger function")
+	}
+	if len(createdSecrets(client)) != 0 {
+		t.Error("no Secret may be created when backup fails")
+	}
+	if kr.keyLen() != 1 {
+		t.Errorf("registry has %d keys, want the 1 existing key", kr.keyLen())
+	}
+}
+
+func TestInitKeyRenewalFirstKeyBackupFailureIsFatal(t *testing.T) {
+	client := fake.NewClientset()
+	store := newFakeStore()
+	store.putErr = errors.New("store down")
+	kr := newTestRegistry(t, client, store)
+
+	if _, err := initKeyRenewal(context.Background(), kr, 0, time.Hour, time.Time{}, "cn", "", ""); err == nil {
+		t.Fatal("first install with a failing store must fail startup")
+	}
+	if kr.keyLen() != 0 {
+		t.Error("registry must stay empty")
+	}
+}

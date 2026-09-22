@@ -87,6 +87,8 @@ server-populated fields. It contains the private key. Protect the store accordin
 | Key already in the cluster when backup is turned on | Backed up at startup (best effort). |
 | Key added by hand with `--watch-for-secrets` | Backed up when the controller sees it (best effort). |
 | Store misconfigured (bad URL, unknown scheme) | Controller exits at startup. |
+| First key ever, backup fails | Controller exits; nothing to serve yet. Kubernetes restarts it, which is the retry. |
+| `--key-cutoff-time` forces a key at startup, backup fails | Logged; controller keeps serving the existing keys. Retried on the next renewal. |
 | Key deleted from the cluster | Store entry is kept. Old SealedSecrets may still need it. |
 
 ## Metrics
