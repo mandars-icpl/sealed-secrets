@@ -931,7 +931,7 @@ git commit -m "feat: add AWS Secrets Manager keybackup provider"
   ```
   `writeKey` keeps its signature and now calls `buildKeySecret` then `Create`.
 
-- [ ] **Step 1: Write the failing tests** (append to `pkg/controller/keys_test.go`)
+- [x] **Step 1: Write the failing tests** (append to `pkg/controller/keys_test.go`)
 
 ```go
 func TestBuildKeySecretMatchesWriteKey(t *testing.T) {
@@ -1008,12 +1008,12 @@ func TestKeySecretManifestStripsServerFields(t *testing.T) {
 
 Add `"encoding/json"` to the test file imports.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `go test ./pkg/controller/ -run 'TestBuildKeySecret|TestKeySecretManifest' 2>&1 | head -5`
 Expected: build failure, `undefined: buildKeySecret`.
 
-- [ ] **Step 3: Refactor `writeKey` and add `keySecretManifest`**
+- [x] **Step 3: Refactor `writeKey` and add `keySecretManifest`**
 
 Replace the body of `writeKey` in `pkg/controller/keys.go` (lines 56 to 107) with:
 
@@ -1098,12 +1098,12 @@ func keySecretManifest(s *v1.Secret) ([]byte, error) {
 
 Add `"encoding/json"` to the imports of `pkg/controller/keys.go`.
 
-- [ ] **Step 4: Run the whole controller package**
+- [x] **Step 4: Run the whole controller package**
 
 Run: `go test ./pkg/controller/ 2>&1 | tail -3`
 Expected: `ok`. `TestWriteKey` still passes because `writeKey` behaviour is unchanged.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pkg/controller/keys.go pkg/controller/keys_test.go

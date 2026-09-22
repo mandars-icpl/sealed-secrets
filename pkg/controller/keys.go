@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"strings"
@@ -53,7 +54,8 @@ func writeKeyWithCreationTime(t metav1.Time) writeKeyOpt {
 	return func(opts *writeKeyOpts) { opts.creationTime = t }
 }
 
-func writeKey(ctx context.Context, client kubernetes.Interface, key *rsa.PrivateKey, certs []*x509.Certificate, namespace, krLabel, prefix string, additionalAnnotations string, additionalLabels string, optSetters ...writeKeyOpt) (string, error) {
+// buildKeySecret assembles the Secret that holds a sealing key pair, without creating it.
+func buildKeySecret(key *rsa.PrivateKey, certs []*x509.Certificate, namespace, krLabel, prefix string, additionalAnnotations string, additionalLabels string, optSetters ...writeKeyOpt) *v1.Secret {
 	var opts writeKeyOpts
 	for _, o := range optSetters {
 		o(&opts)
@@ -88,7 +90,7 @@ func writeKey(ctx context.Context, client kubernetes.Interface, key *rsa.Private
 		}
 	}
 
-	secret := v1.Secret{
+	return &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:         namespace,
 			GenerateName:      prefix,
@@ -102,10 +104,29 @@ func writeKey(ctx context.Context, client kubernetes.Interface, key *rsa.Private
 		},
 		Type: v1.SecretTypeTLS,
 	}
+}
 
-	createdSecret, err := client.CoreV1().Secrets(namespace).Create(ctx, &secret, metav1.CreateOptions{})
+func writeKey(ctx context.Context, client kubernetes.Interface, key *rsa.PrivateKey, certs []*x509.Certificate, namespace, krLabel, prefix string, additionalAnnotations string, additionalLabels string, optSetters ...writeKeyOpt) (string, error) {
+	secret := buildKeySecret(key, certs, namespace, krLabel, prefix, additionalAnnotations, additionalLabels, optSetters...)
+	createdSecret, err := client.CoreV1().Secrets(namespace).Create(ctx, secret, metav1.CreateOptions{})
 	if err != nil {
 		return "", err
 	}
 	return createdSecret.Name, nil
+}
+
+// keySecretManifest serializes a copy of s as a Secret manifest that can be applied
+// into a fresh cluster: type meta set, server-populated fields cleared. The returned
+// bytes contain the private key and must never be logged.
+func keySecretManifest(s *v1.Secret) ([]byte, error) {
+	c := s.DeepCopy()
+	c.APIVersion = "v1"
+	c.Kind = "Secret"
+	c.ResourceVersion = ""
+	c.UID = ""
+	c.SelfLink = ""
+	c.CreationTimestamp = metav1.Time{}
+	c.ManagedFields = nil
+	c.Generation = 0
+	return json.Marshal(c)
 }

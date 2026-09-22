@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"io"
 	mathrand "math/rand"
@@ -138,5 +139,76 @@ func TestWriteKey(t *testing.T) {
 		if annotations.(map[string]interface{})[annotationKey] != annotationValue {
 			t.Errorf("writeKey didn't set annotation '%v' to value '%v'", annotationKey, annotationValue)
 		}
+	}
+}
+
+func TestBuildKeySecretMatchesWriteKey(t *testing.T) {
+	rand := testRand()
+	key, _ := rsa.GenerateKey(rand, 2048)
+	cert, _ := signKey(rand, key)
+	s := buildKeySecret(key, []*x509.Certificate{cert}, "ns", SealedSecretsKeyLabel, "prefix", "a=1", "b=2")
+	if s.GenerateName != "prefix" || s.Name != "" || s.Namespace != "ns" {
+		t.Errorf("metadata = %+v", s.ObjectMeta)
+	}
+	if s.Labels[SealedSecretsKeyLabel] != "active" || s.Labels["b"] != "2" || s.Annotations["a"] != "1" {
+		t.Errorf("labels/annotations = %v %v", s.Labels, s.Annotations)
+	}
+	if s.Type != v1.SecretTypeTLS || len(s.Data[v1.TLSPrivateKeyKey]) == 0 || len(s.Data[v1.TLSCertKey]) == 0 {
+		t.Errorf("data/type wrong")
+	}
+	gotKey, gotCerts, err := readKey(s)
+	if err != nil || gotKey.N.Cmp(key.N) != 0 || len(gotCerts) != 1 {
+		t.Errorf("round trip failed: %v", err)
+	}
+}
+
+func TestKeySecretManifestStripsServerFields(t *testing.T) {
+	rand := testRand()
+	key, _ := rsa.GenerateKey(rand, 2048)
+	cert, _ := signKey(rand, key)
+	s := buildKeySecret(key, []*x509.Certificate{cert}, "ns", SealedSecretsKeyLabel, "prefix", "", "")
+	s.Name = "prefixabcde"
+	s.GenerateName = ""
+	s.ResourceVersion = "123"
+	s.UID = "uid-1"
+	s.SelfLink = "/x"
+	s.CreationTimestamp = metav1.Now()
+	s.ManagedFields = []metav1.ManagedFieldsEntry{{Manager: "m"}}
+
+	raw, err := keySecretManifest(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m map[string]interface{}
+	if err := json.Unmarshal(raw, &m); err != nil {
+		t.Fatal(err)
+	}
+	if m["apiVersion"] != "v1" || m["kind"] != "Secret" {
+		t.Errorf("type meta missing: %v %v", m["apiVersion"], m["kind"])
+	}
+	md := m["metadata"].(map[string]interface{})
+	if md["name"] != "prefixabcde" || md["namespace"] != "ns" {
+		t.Errorf("metadata = %v", md)
+	}
+	for _, f := range []string{"resourceVersion", "uid", "selfLink", "managedFields"} {
+		if _, present := md[f]; present {
+			t.Errorf("%s should be stripped", f)
+		}
+	}
+	if ts, present := md["creationTimestamp"]; present && ts != nil {
+		t.Errorf("creationTimestamp should be cleared, got %v", ts)
+	}
+	// The original object must not be mutated.
+	if s.ResourceVersion != "123" {
+		t.Error("keySecretManifest mutated its input")
+	}
+	// And the manifest must decode back to a Secret holding the same key.
+	var back v1.Secret
+	if err := json.Unmarshal(raw, &back); err != nil {
+		t.Fatal(err)
+	}
+	gotKey, _, err := readKey(&back)
+	if err != nil || gotKey.N.Cmp(key.N) != 0 {
+		t.Errorf("manifest does not round trip the key: %v", err)
 	}
 }
