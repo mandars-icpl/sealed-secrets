@@ -2219,7 +2219,7 @@ git commit -m "docs: document sealing key backup"
 
 Prerequisites: `kind`, `helm`, `kubectl`, `kubeseal`, `docker`, and for part B the AWS profile `ss-feas` in region `ap-south-1` with the policy from `feasibility/iam-policy.json` plus `secretsmanager:PutSecretValue`. Build the image from the branch and load it into kind.
 
-- [ ] **Step 1: Build and load the controller image**
+- [x] **Step 1: Build and load the controller image**
 
 The repo Dockerfile expects a goreleaser `dist/` layout, so build the image from a
 two-line Dockerfile in the scratchpad instead:
@@ -2246,7 +2246,7 @@ Every `helm install`/`upgrade` below passes the same image values; define them o
 IMG="--set image.registry=docker.io --set image.repository=library/sealed-secrets-controller --set image.tag=kb --set image.pullPolicy=Never"
 ```
 
-- [ ] **Step 2: Part A, file provider through an emptyDir**
+- [x] **Step 2: Part A, file provider through an emptyDir**
 
 ```bash
 helm install sealed-secrets ./helm/sealed-secrets -n kube-system \
@@ -2353,12 +2353,52 @@ Append to this plan file:
 ```markdown
 ## Verification log
 
-- Date:
-- Image build command that worked:
-- Part A (file provider): PASS/FAIL, notes
-- Part B (AWS): PASS/FAIL, entry names seen, notes
-- Fail-closed: PASS/FAIL, metric values
+- Date: 2026-09-22
+- Image build command that worked: `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o controller ./cmd/controller`
+  into the two-line distroless Dockerfile from step 1, `docker build -t sealed-secrets-controller:kb`,
+  `kind load docker-image` into cluster `ss-kb`. Chart installed with
+  `--set image.registry=docker.io --set image.repository=library/sealed-secrets-controller --set image.tag=kb --set image.pullPolicy=Never`.
+- Part A (file provider): **PASS**.
+  - Startup logged `Sealing key backup enabled url=file:///backup`, then `Sealing key backed up`
+    *before* `New key written`, confirming the fail-closed ordering.
+  - Backup directory held exactly one entry, mode `0600`, named
+    `6db2215f3a6de36d74f203790420f531811ced36e81681c8e362b1d08b585d64.json`. That name is the
+    hex of the key's `SHA256:bbIhXzpt42108gN5BCD1MYEc7TboFoHI42Kx0ItYXWQ` fingerprint, so
+    `SafeID` round trips against a real controller-generated key.
+  - Restarting the controller re-ran the reconcile pass over the pre-existing key Secret and
+    backed it up again without creating a duplicate entry.
+  - Stored manifest decoded to `kind: Secret`, `apiVersion: v1`, name `sealed-secrets-keygzrh7`,
+    namespace `kube-system`, `tls.crt` + `tls.key`, the `sealed-secrets-key=active` label intact,
+    and none of `resourceVersion`, `uid`, `selfLink`, `managedFields`, `creationTimestamp`.
+  - Restore proof: sealed `kb-test=hello`, destroyed the cluster, created a fresh one, applied
+    only the backup JSON, installed the controller with backup disabled. It logged
+    `registered private key secretname=sealed-secrets-keygzrh7`, did **not** log `New key written`,
+    and the old SealedSecret decrypted to `hello` with `Synced=True`.
+- Part B (AWS): **NOT RUN — blocked on IAM.** Profile `ss-feas` / `ap-south-1` authenticates as
+  `arn:aws:iam::188318272732:user/mandars`, but `secretsmanager:DescribeSecret` is denied:
+  `User ... is not authorized to perform: secretsmanager:DescribeSecret ... because no
+  identity-based policy allows the secretsmanager:DescribeSecret action`. `Store.Exists` calls
+  DescribeSecret on every reconcile and informer add, so the awssm provider cannot be exercised.
+  `feasibility/iam-policy.json` grants CreateSecret, GetSecretValue, TagResource, DeleteSecret and
+  ListSecrets; the controller additionally needs `secretsmanager:DescribeSecret` **and**
+  `secretsmanager:PutSecretValue` on `arn:aws:secretsmanager:*:*:secret:ss-feas-*`. The task
+  prerequisites mention only PutSecretValue, so two actions must be added, not one.
+  PutSecretValue was not probed, because confirming one blocker was enough and probing it would
+  have created real Secrets Manager entries.
+- Fail-closed: **NOT RUN.** Step 4 drives the failure through an `awssm://` URL, so it is blocked
+  behind Part B. The equivalent path has unit coverage in
+  `TestGenerateKeyBackupFailureCreatesNothing` (no Secret created, failure counter incremented,
+  unbacked gauge stays 0).
 - Deviations from the plan:
+  - The controller image is distroless, so the step 2 commands `kubectl exec $POD -- ls -la /backup`
+    and `kubectl exec $POD -- cat /backup/*.json` both fail with
+    `exec: "ls": executable file not found in $PATH`. The `emptyDir` was therefore replaced with a
+    `hostPath` at `/tmp/kb-backup` on the kind node (pre-created and `chown 1001:1001`, because the
+    container runs as UID 1001), and the directory was read with `docker exec ss-kb-control-plane`.
+    Anyone re-running Part A should use the hostPath form.
+  - Cleanup: the kind cluster, the local image, the extracted key manifest (`shred -u`), the cert and
+    the sealed fixture were all removed. No AWS resources were created, so the AWS half of step 5
+    was not applicable.
 ```
 
 ```bash
