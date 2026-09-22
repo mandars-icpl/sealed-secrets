@@ -2047,7 +2047,7 @@ git commit -m "feat(helm): add keyBackup.url value"
 - Modify: `README.md:763-793` (backup FAQ)
 - Modify: `docs/superpowers/specs/2026-09-22-sealing-key-backup-design.md` (Integration test section)
 
-- [ ] **Step 1: Write `docs/key-backup.md`**
+- [x] **Step 1: Write `docs/key-backup.md`**
 
 ```markdown
 # Sealing key backup
@@ -2185,7 +2185,7 @@ call `keybackup.Register("<scheme>", open)` from `init`, and import the package 
 side effect in `cmd/controller/main.go`. The controller core needs no change.
 ```
 
-- [ ] **Step 2: Point the README FAQ at it**
+- [x] **Step 2: Point the README FAQ at it**
 
 In `README.md`, inside the section `### How can I do a backup of my SealedSecrets?`, add as the first paragraph after the heading:
 
@@ -2193,7 +2193,7 @@ In `README.md`, inside the section `### How can I do a backup of my SealedSecret
 > The controller can do this for you automatically, storing every key in AWS Secrets Manager or another external store before it is created. See [docs/key-backup.md](docs/key-backup.md). The manual procedure below still works.
 ```
 
-- [ ] **Step 3: Update the spec's integration test section**
+- [x] **Step 3: Update the spec's integration test section**
 
 In the spec, replace the `### Integration test` section body with:
 
@@ -2204,7 +2204,7 @@ cannot run in that suite. The file provider is verified manually in kind with an
 `emptyDir` volume (implementation plan, Task 10) and by its unit tests.
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/key-backup.md README.md docs/superpowers/specs/2026-09-22-sealing-key-backup-design.md

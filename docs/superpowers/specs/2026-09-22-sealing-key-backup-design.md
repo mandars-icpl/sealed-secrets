@@ -299,9 +299,10 @@ on a fetched manifest for offline decryption.
 
 ### Integration test
 
-Added to the existing Ginkgo suite in `integration/`: start the controller with a
-`file://` URL pointing at a temp directory, wait for the first key, assert a backup file
-exists whose fingerprint matches the key Secret in the cluster. No cloud access in CI.
+The existing Ginkgo suite runs against a controller already installed in a cluster, and
+`controller.Main` requires in-cluster configuration, so a file-provider integration test
+cannot run in that suite. The file provider is verified manually in kind with an
+`emptyDir` volume (implementation plan, Task 10) and by its unit tests.
 
 ### Manual verification against AWS
 

@@ -762,6 +762,8 @@ No, the private keys are only stored in the Secret managed by the controller (un
 
 ### How can I do a backup of my SealedSecrets?
 
+> The controller can do this for you automatically, storing every key in AWS Secrets Manager or another external store before it is created. See [docs/key-backup.md](docs/key-backup.md). The manual procedure below still works.
+
 If you do want to make a backup of the encryption private keys, it's easy to do from an account with suitable access:
 
 ```bash
