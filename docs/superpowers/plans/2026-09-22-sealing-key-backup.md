@@ -1573,7 +1573,7 @@ git commit -m "feat: back up new sealing keys before creating them"
   func (kr *KeyRegistry) reconcileKeyBackups(ctx context.Context)
   ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```go
 // pkg/controller/keybackup_test.go
@@ -1722,12 +1722,12 @@ func TestReconcileKeyBackupsContinuesAfterFailure(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `go test ./pkg/controller/ -run 'TestBackupKeySecret|TestReconcile' 2>&1 | head -5`
 Expected: build failure, `kr.backupKeySecret undefined`.
 
-- [ ] **Step 3: Write `pkg/controller/keybackup.go`**
+- [x] **Step 3: Write `pkg/controller/keybackup.go`**
 
 ```go
 package controller
@@ -1813,7 +1813,7 @@ func (kr *KeyRegistry) reconcileKeyBackups(ctx context.Context) {
 }
 ```
 
-- [ ] **Step 4: Hook the informer** in `pkg/controller/controller.go`, inside `watchKeySecrets`, `AddFunc` (line 138 to 148). After the successful `registryNewKeyWithSecret` call, add:
+- [x] **Step 4: Hook the informer** in `pkg/controller/controller.go`, inside `watchKeySecrets`, `AddFunc` (line 138 to 148). After the successful `registryNewKeyWithSecret` call, add:
 
 ```go
 			if err := registry.backupKeySecret(context.Background(), secret); err != nil {
@@ -1842,12 +1842,12 @@ so the handler reads:
 
 Confirm `"context"` is already imported in `controller.go` (it is, for `AttemptUnseal`); if not, add it.
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `go test ./pkg/controller/ 2>&1 | tail -3`
 Expected: `ok`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pkg/controller/keybackup.go pkg/controller/keybackup_test.go pkg/controller/controller.go

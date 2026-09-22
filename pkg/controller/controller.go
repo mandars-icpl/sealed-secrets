@@ -145,6 +145,9 @@ func watchKeySecrets(kinformer informers.SharedInformerFactory, registry *KeyReg
 				slog.Error("failed to register key", "secret", secret.Name, "error", err)
 				return
 			}
+			if err := registry.backupKeySecret(context.Background(), secret); err != nil {
+				slog.Error("Backup of externally added sealing key failed", "secret", secret.Name, "error", err)
+			}
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			secret, ok := newObj.(*corev1.Secret)
