@@ -58,7 +58,7 @@ func bindControllerFlags(f *controller.Flags, fs *flag.FlagSet) {
 	fs.BoolVar(&f.WatchForSecrets, "watch-for-secrets", false, "beta: If this is true, the controller will watch for key secrets. This is useful if you create the key secrets externally.")
 	fs.StringVar(&f.KeyBackupURL, "key-backup-url", "", "URL of an external store that receives a copy of every sealing key before it is created (for example awssm://prefix?region=ap-south-1&kms-key-id=alias/x, or file:///dir). Empty disables backup.")
 
-	fs.BoolVar(&f.SkipRecreate, "skip-recreate", false, "if true the controller will skip listening for managed secret changes to recreate them. This helps on limited permission environments.")
+	fs.BoolVar(&f.SkipRecreate, "skip-recreate", false, "if true the controller will skip listening for managed secret changes to recreate deleted secrets and restore modified ones. This helps on limited permission environments.")
 
 	fs.BoolVar(&f.LogInfoToStdout, "log-info-stdout", true, "if true the controller will log info to stdout and error/warn to stderr.")
 	fs.StringVar(&f.LogLevel, "log-level", "INFO", "Log level (INFO|ERROR).")
